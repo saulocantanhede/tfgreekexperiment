@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="treedown.css"?>
+<?xml-stylesheet href="boxwood.css"?>
+<book name="Matthew">
+   <sentence>
+      <p>
+         <milestone unit="verse" id="Matt.1.1">Matt.1.1</milestone> Βίβλος γενέσεως Ἰησοῦ Χριστοῦ υἱοῦ Δαυεὶδ υἱοῦ Ἀβραάμ.</p>
+      <wg role="cl">
+         <wg class="cl" n="400010010010082" rule="P2CL">
+            <wg role="p" class="np" n="400010010010080" rule="NPofNP">
+               <w class="noun"
+                  type="common"
+                  osisId="Matt.1.1!1"
+                  n="400010010010010"
+                  lemma="βίβλος"
+                  normalized="Βίβλος"
+                  strong="976"
+                  number="singular"
+                  gender="feminine"
+                  case="nominative"
+                  head="true"
+                  gloss="[The] book">Βίβλος</w>
+               <wg class="np" n="400010010020070" rule="NPofNP">
+                  <w class="noun"
+                     type="common"
+                     osisId="Matt.1.1!2"
+                     n="400010010020010"
+                     lemma="γένεσις"
+                     normalized="γενέσεως"
+                     strong="1078"
+                     number="singular"
+                     gender="feminine"
+                     case="genitive"
+                     head="true"
+                     gloss="of [the] genealogy">γενέσεως</w>
+                  <wg class="np" n="400010010030060" rule="Np-Appos">
+                     <wg class="np" n="400010010030040" head="true" rule="Np-Appos">
+                        <wg class="np" n="400010010030020" head="true" rule="Np-Appos">
+                           <w class="noun"
+                              type="proper"
+                              osisId="Matt.1.1!3"
+                              n="400010010030010"
+                              lemma="Ἰησοῦς"
+                              normalized="Ἰησοῦ"
+                              strong="2424"
+                              number="singular"
+                              gender="masculine"
+                              case="genitive"
+                              head="true"
+                              gloss="of Jesus">Ἰησοῦ</w>
+                           <w class="noun"
+                              type="proper"
+                              osisId="Matt.1.1!4"
+                              n="400010010040010"
+                              lemma="Χριστός"
+                              normalized="Χριστοῦ"
+                              strong="5547"
+                              number="singular"
+                              gender="masculine"
+                              case="genitive"
+                              gloss="Christ">Χριστοῦ</w>
+                        </wg>
+                        <wg class="np" n="400010010050020" rule="NPofNP">
+                           <w class="noun"
+                              type="common"
+                              osisId="Matt.1.1!5"
+                              n="400010010050010"
+                              lemma="υἱός"
+                              normalized="υἱοῦ"
+                              strong="5207"
+                              number="singular"
+                              gender="masculine"
+                              case="genitive"
+                              head="true"
+                              gloss="son">υἱοῦ</w>
+                           <w class="noun"
+                              type="proper"
+                              osisId="Matt.1.1!6"
+                              n="400010010060010"
+                              lemma="Δαυίδ"
+                              normalized="Δαυείδ"
+                              strong="1138"
+                              number="singular"
+                              gender="masculine"
+                              case="genitive"
+                              gloss="of David">Δαυεὶδ</w>
+                        </wg>
+                     </wg>
+                     <wg class="np" n="400010010070020" rule="NPofNP">
+                        <w class="noun"
+                           type="common"
+                           osisId="Matt.1.1!7"
+                           n="400010010070010"
+                           lemma="υἱός"
+                           normalized="υἱοῦ"
+                           strong="5207"
+                           number="singular"
+                           gender="masculine"
+                           case="genitive"
+                           head="true"
+                           gloss="son">υἱοῦ</w>
+                        <w class="noun"
+                           type="proper"
+                           osisId="Matt.1.1!8"
+                           n="400010010080010"
+                           lemma="Ἀβραάμ"
+                           normalized="Ἀβραάμ"
+                           strong="11"
+                           number="singular"
+                           gender="masculine"
+                           case="genitive"
+                           gloss="of Abraham">Ἀβραάμ</w>
+                        <pc>.</pc>
+                     </wg>
+                  </wg>
+               </wg>
+            </wg>
+         </wg>
+      </wg>
+   </sentence>
+</book>
