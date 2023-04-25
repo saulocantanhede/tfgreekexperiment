@@ -36,8 +36,6 @@ SET = OrderedDict.fromkeys(
     """.strip().split()
 )
 
-
-
 bookcounter=0
 
 for files in SET:
@@ -82,9 +80,8 @@ for files in SET:
 				final=final.replace('<sentence>','<sentence sentence_number=\"{}\"> '.format(sentencecounter))
 			
 			if '</w>' in line:
-				final=line.replace('\">',"\" word=\"")
-				final=final.replace('</w>','\"> \n</word>')
-			
+				final=final.replace('</w>','</word>')
+
 			if ' ref=' in line:
 				parts = re.sub(r'[!: ]'," ", line).split()
 				j=0
