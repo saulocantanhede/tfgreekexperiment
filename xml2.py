@@ -18,7 +18,6 @@ from ..core.files import (
     scanDir,
 )
 
-
 __pdoc__ = {}
 
 DOC_TRANS = """
@@ -446,9 +445,22 @@ class XML:
     # DIRECTOR
 
     def getDirector(self):
+        """Factory for the director function.
+
+        The `tf.convert.walker` relies on a corpus dependent `director` function
+        that walks through the source data and spits out actions that
+        produces the TF dataset.
+
+        We collect all needed data, store it, and define a local director function
+        that has access to this data.
+
+        Returns
+        -------
+        function
+            The local director function that has been constructed.
+        """
         PASS_THROUGH = set(
             """
-            xml
             """.strip().split()
         )
 
@@ -473,6 +485,20 @@ class XML:
         WHITE_TRIM_RE = re.compile(r"\s+", re.S)
 
         def walkNode(cv, cur, node):
+            """Internal function to deal with a single element.
+
+            Will be called recursively.
+
+            Parameters
+            ----------
+            cv: object
+                The convertor object, needed to issue actions.
+            cur: dict
+                Various pieces of data collected during walking
+                and relevant for some next steps in the walk.
+            node: object
+                An lxml element node.
+            """
             tag = etree.QName(node.tag).localname
             cur["nest"].append(tag)
 
@@ -485,11 +511,41 @@ class XML:
             cur["nest"].pop()
             afterTag(cv, cur, node, tag)
 
-        def addSlot(cv, cur, word):
-            this_word = cv.slot()
-            cv.feature(this_word, word=word)
+        def addSlot(cv, cur, ch):
+            """Add a slot.
+
+            Whenever we encounter a character, we add it as a new slot.
+
+            Parameters
+            ----------
+            cv: object
+                The convertor object, needed to issue actions.
+            cur: dict
+                Various pieces of data collected during walking
+                and relevant for some next steps in the walk.
+            ch: string
+                A single character, the next slot in the result data.
+            """
+            
+            s = cv.slot()
+            print(ch)
+            cv.feature(s, ch=ch)
 
         def beforeChildren(cv, cur, node, tag):
+            """Actions before dealing with the element's children.
+
+            Parameters
+            ----------
+            cv: object
+                The convertor object, needed to issue actions.
+            cur: dict
+                Various pieces of data collected during walking
+                and relevant for some next steps in the walk.
+            node: object
+                An lxml element node.
+            tag: string
+                The tag of the lxml node.
+            """
             if tag not in PASS_THROUGH:
                 curNode = cv.node(tag)
                 cur["elems"].append(curNode)
@@ -499,26 +555,75 @@ class XML:
 
             if node.text:
                 textMaterial = WHITE_TRIM_RE.sub(" ", node.text)
-                for word in textMaterial:
-                    addSlot(cv, cur, word)
+                addSlot(cv, cur,textMaterial)       #word
+                #for ch in textMaterial:
+                #    addSlot(cv, cur, ch)
 
         def afterChildren(cv, cur, node, tag):
+            """Node actions after dealing with the children, but before the end tag.
+
+            Parameters
+            ----------
+            cv: object
+                The convertor object, needed to issue actions.
+            cur: dict
+                Various pieces of data collected during walking
+                and relevant for some next steps in the walk.
+            node: object
+                An lxml element node.
+            tag: string
+                The tag of the lxml node.
+            """
             if tag not in PASS_THROUGH:
                 curNode = cur["elems"].pop()
 
                 if not cv.linked(curNode):
-                    s = cv.slot()
-                    cv.feature(s, word=ZWSP, empty=1)
+                    addSlot(cv,curNode,ZWSP) #word
+                    #s = cv.slot()
+                    #cv.feature(s, ch=ZWSP, empty=1)
 
                 cv.terminate(curNode)
 
         def afterTag(cv, cur, node, tag):
+            """Node actions after dealing with the children and after the end tag.
+
+            This is the place where we proces the `tail` of an lxml node: the
+            text material after the element and before the next open/close
+            tag of any element.
+
+            Parameters
+            ----------
+            cv: object
+                The convertor object, needed to issue actions.
+            cur: dict
+                Various pieces of data collected during walking
+                and relevant for some next steps in the walk.
+            node: object
+                An lxml element node.
+            tag: string
+                The tag of the lxml node.
+            """
             if node.tail:
                 tailMaterial = WHITE_TRIM_RE.sub(" ", node.tail)
-                for word in tailMaterial:
-                    addSlot(cv, cur, word)
+                addSlot(cv, cur,tailMaterial)
+                #for word in tailMaterial:
+                #    addSlot(cv, cur, word)
 
         def director(cv):
+            """Director function.
+
+            Here we program a walk through the XML sources.
+            At every step of the walk we fire some actions that build TF nodes
+            and assign features for them.
+
+            Because everything is rather dynamic, we generate fairly standard
+            metadata for the features.
+
+            Parameters
+            ----------
+            cv: object
+                The convertor object, needed to issue actions.
+            """
             cur = {}
 
             i = 0
@@ -544,7 +649,7 @@ class XML:
                         cur["elems"] = []
                         walkNode(cv, cur, root)
 
-                    addSlot(cv, cur, None)
+                    #addSlot(cv, cur, None) #remove 'None' that appears in the last line
                     cv.terminate(cur["file"])
 
                 cv.terminate(cur["folder"])
@@ -567,6 +672,24 @@ class XML:
         return director
 
     def loadTask(self):
+        """Implementation of the "load" task.
+
+        It loads the tf data that resides in the directory where the "convert" task
+        deliver its results.
+
+        During loading there are additional checks. If they succeed, we have evidence
+        that we have a valid TF dataset.
+
+        Also, during the first load intensive precomputation of TF data takes place,
+        the results of which will be cached in the invisible `.tf` directory there.
+
+        That makes the TF data ready to be loaded fast, next time it is needed.
+
+        Returns
+        -------
+        boolean
+            Whether the loading was successful.
+        """
         tfPath = self.tfPath
 
         if not dirExists(tfPath):
@@ -584,6 +707,36 @@ class XML:
         return False
 
     def task(self, check=False, convert=False, load=False, test=None):
+        """Carry out any task, possibly modified by any flag.
+
+        This is a higher level function that can execute a selection of tasks.
+
+        The tasks will be executed in a fixed order: check, convert load.
+        But you can select which one(s) must be executed.
+
+        If multiple tasks must be executed and one fails, the subsequent tasks
+        will not be executed.
+
+        Parameters
+        ----------
+        check: boolean, optional False
+            Whether to carry out the "check" task.
+        convert: boolean, optional False
+            Whether to carry out the "convert" task.
+        load: boolean, optional False
+            Whether to carry out the "load" task.
+        test: boolean, optional None
+            Whether to run in test mode.
+            In test mode only the files in the test set are converted.
+
+            If None, it will read its value from the attribute `testMode` of the
+            `XML` object.
+
+        Returns
+        -------
+        boolean
+            Whether all tasks have executed successfully.
+        """
         sourceDir = self.sourceDir
         reportDir = self.reportDir
         tfPath = self.tfPath
@@ -607,6 +760,28 @@ class XML:
         return good
 
     def run(self, program=None):
+        """Carry out tasks specified by arguments on the command line.
+
+        The intended use of this module is that it is included by a conversion
+        script.
+        When that script is invoked, you can pass arguments to specify tasks
+        and flags.
+
+        This function inspects those arguments, and runs the specified tasks,
+        with the specified flags enabled.
+
+        Parameters
+        ----------
+        program: string
+            The name of the program that you want to display
+            in the help string, in case a help text must be displayed.
+
+        Returns
+        -------
+        integer
+            In fact, this function will terminate the conversion program
+            an return a status code: 0 for succes, 1 for failure.
+        """
         programRep = "XML-converter" if program is None else program
         possibleTasks = {"check", "convert", "load"}
         possibleFlags = {"test"}
