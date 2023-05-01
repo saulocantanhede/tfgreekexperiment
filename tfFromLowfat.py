@@ -1,6 +1,6 @@
 import sys
 
-from tf.convert.xml2 import XML
+from tf.convert.xml3 import XML
 from tf.core.files import baseNm
 
 if sys.stdout.encoding != 'utf-8':
