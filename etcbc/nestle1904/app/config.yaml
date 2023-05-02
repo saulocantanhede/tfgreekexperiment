@@ -1,0 +1,15 @@
+apiVersion: 3
+dataDisplay:
+  excludedFeatures: []
+  noneValues:
+  - none
+  - unknown
+  - null
+  - NA
+provenanceSpec:
+  version: "0.1"
+typeDisplay:
+  sentence:
+    condense: true
+writing: 'grc'
+
