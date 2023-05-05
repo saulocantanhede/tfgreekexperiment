@@ -1,9 +1,13 @@
+#importing libraries
 import sys
 import collections
 import re
 from io import BytesIO
 
-from lxml import etree
+from lxml import etree #lxml library is used to work with XML files
+
+#importing Text-Fabric libraries
+#these libraries are in the folder: ~/anaconda3/Lib/site-packages/tf
 from ..fabric import Fabric
 from ..core.helpers import console
 from ..convert.walker import CV
@@ -25,7 +29,8 @@ DOC_TRANS = """
 
 *   Text-Fabric non-slot nodes correspond to XML elements in the source.
 *   Text-Fabric node-features correspond to XML attributes.
-*   Text-Fabric slot nodes correspond to characters in XML element content.
+*   Text-Fabric slot nodes correspond to the words,
+    which are the attribute unicode in XML element content.
 
 ## Sectioning
 
@@ -55,16 +60,17 @@ consisting of xml files, the XML files.
 
 ## Slots
 
-The basic unit is the unicode character.
-For each character in the input we make a slot, but the correspondence is not
+The basic unit is the word.
+
+For each word in the input we make a slot, but the correspondence is not
 quite 1-1.
 
 1.  Whitespace is reduced to a single space.
-1.  Empty elements will receive one extra slot; this will anchor the element to
+2.  Empty elements will receive one extra slot; this will anchor the element to
     a textual position; the empty slot gets the ZERO-WIDTH-SPACE (Unicode 200B)
     as character value.
 1.  Slots get the following features:
-    *   `ch`: the character of the slot
+    *   `w`: the character of the slot
     *   `empty`: 1 if the slot has been inserted as an empty slot, no value otherwise.
 
 
@@ -75,7 +81,7 @@ what text is displayed.
 
 We have the following formats:
 
-*   `text-orig-full`: all text
+*   `text-orig-full`: `{word}{after}`
 
 ## Simplifications
 
@@ -143,9 +149,9 @@ feature | description
 `empty` | whether a slot has been inserted in an empty element
 """
 
-
 class XML:
-    def __init__(
+    def __init__( #initial features of the XML class;
+                  #it can be changed with a script with the specific features of the data
         self,
         sourceVersion="0.1",
         testSet=set(),
@@ -153,7 +159,7 @@ class XML:
         transform=None,
         tfVersion="0.1",
     ):
-        (backend, org, repo, relative) = getLocation()
+        (backend, org, repo, relative) = getLocation() #information of the file location
         if any(s is None for s in (backend, org, repo, relative)):
             console(
                 "Not working in a repo: "
@@ -191,7 +197,7 @@ class XML:
         myDir = dirNm(abspath(__file__))
         self.myDir = myDir
 
-    @staticmethod
+    @staticmethod #method that belongs to a class but does not depend on any instance or class variables
     def help(program):
 
         console(
@@ -220,7 +226,7 @@ class XML:
         )
 
     @staticmethod
-    def getParser():
+    def getParser(): #information for the XMLParser
         return etree.XMLParser(
             remove_blank_text=False,
             collect_ids=False,
@@ -229,7 +235,7 @@ class XML:
             huge_tree=True,
         )
 
-    def getXML(self):
+    def getXML(self): #obtain the xml file in a folder
         sourceDir = self.sourceDir
         testMode = self.testMode
         testSet = self.testSet
@@ -247,7 +253,7 @@ class XML:
 
         return tuple(sorted(xmlFilesRaw))
 
-    def checkTask(self):
+    def checkTask(self): #check if the XML file and the converter is working properly
         sourceDir = self.sourceDir
         reportDir = self.reportDir
 
@@ -264,8 +270,8 @@ class XML:
             NUM_RE = re.compile(r"""[0-9]""", re.S)
 
             def nodeInfo(node):
-                tag = etree.QName(node.tag).localname
-                atts = node.attrib
+                tag = etree.QName(node.tag).localname #definition of the nodes
+                atts = node.attrib #definition of the node attributes
 
                 if len(atts) == 0:
                     analysis[tag][""][""] += 1
@@ -281,7 +287,7 @@ class XML:
 
             nodeInfo(root)
 
-        def writeReport():
+        def writeReport(): #write the elements in each tag of all XML files analyzed
             reportFile = f"{reportDir}/elements.txt"
             with open(reportFile, "w", encoding="utf-8") as fh:
                 fh.write(
@@ -291,7 +297,7 @@ class XML:
 
                 infoLines = 0
 
-                def writeAttInfo(tag, att, attInfo):
+                def writeAttInfo(tag, att, attInfo): #writing attributes features in the elements.txt file
                     nonlocal infoLines
                     nl = "" if tag == "" else "\n"
                     tagRep = "" if tag == "" else f"<{tag}>"
@@ -304,7 +310,7 @@ class XML:
                         fh.write(f"""\t{'':<12} {'"':<12} {amount:>5}x {val}\n""")
                         infoLines += 1
 
-                def writeTagInfo(tag, tagInfo):
+                def writeTagInfo(tag, tagInfo): #writing tag information in the elements.txt file
                     nonlocal infoLines
                     tags = sorted(tagInfo.items())
                     (att, attInfo) = tags[0]
@@ -318,18 +324,6 @@ class XML:
 
             console(f"{infoLines} info line(s) written to {reportFile}")
 
-        '''
-        i = 0
-        for (xmlFolder, xmlFiles) in self.getXML():
-            console(xmlFolder)
-            for xmlFile in xmlFiles:
-                i += 1
-                console(f"\r{i:>4} {xmlFile:<50}", newline=False)
-                xmlPath = f"{sourceDir}/{xmlFolder}/{xmlFile}"
-                tree = etree.parse(xmlPath, parser)
-                root = tree.getroot()
-                analyse(root, analysis)
-        '''
         console("")
         writeReport()
 
@@ -337,49 +331,49 @@ class XML:
 
     # SET UP CONVERSION
 
-    def getConverter(self):
+    def getConverter(self): #for runing the conversion we need to call the conversion function (cv)
         tfPath = self.tfPath
 
         TF = Fabric(locations=tfPath)
         return CV(TF)
 
     def convertTask(self):
-        slotType = "w"
+        slotType = "w" #variable that will run through all the slots (w means for word)
         otext = {
-            "fmt:text-orig-full": "{text}",
-            "sectionTypes": "book,chapter,verse",
-            "sectionFeatures": "book_short,chapter,verse",
+            "fmt:text-orig-full": "{text}{after}", #text format
+            "sectionTypes": "book,chapter,verse", #type of section features
+            "sectionFeatures": "book_short,chapter,verse" #section features as in the XML file
         }
-        intFeatures = {
+        intFeatures = { #set of integer features
             "chapter",
             "verse",
             "book_num",
             "sentence_number",
             "nodeId",
             "strong",
-            "word_in_verse",
-            "empty",
+            "word_in_verse"
         }
-        featureMeta = dict(
+        featureMeta = dict( #metadata for the features with the description that will appear
+                            #in the header of the tf files
             book_num=dict(description="NT book number (Matthew=1, Mark=2, ..., Revelation=27)"),
             book_short=dict(description="Book name (abbreviated)"),
             sentence_number=dict(description="Sentence number (counted per chapter)"),
-            Rule=dict(description="Clause rule"),
+                Rule=dict(description="Clause rule"),
             appositioncontainer=dict(description="Apposition container"),
             articular=dict(description="Articular"),
-            class_wg=dict(description="Syntactical class"),
+                class_wg=dict(description="Syntactical class"),
             clauseType=dict(description="Type of clause"),
             cltype=dict(description="Type of clause"),
             junction=dict(description="Type of junction"),
             nodeId=dict(description="Node ID (as in the XML source data"),
-            role_wg=dict(description="Role"),
+                role_wg=dict(description="Role"),
             rule=dict(description="Syntactical rule"),
-            type_wg=dict(description="Syntactical type"),
+                type_wg=dict(description="Syntactical type"),
             after=dict(description="After the end of the word"),
             book=dict(description="Book name (abbreviated)"),
             case=dict(description="Type of case"),
             chapter=dict(description="Number of the chapter"),
-            class_w=dict(description="Morphological class"),
+                class_w=dict(description="Morphological class"),
             degree=dict(description="Degree"),
             discontinuous=dict(description="Discontinuous"),
             domain=dict(description="domain"),
@@ -396,17 +390,16 @@ class XML:
             person=dict(description="person"),
             ref=dict(description="biblical reference with word counting"),
             referent=dict(description="number of referent"),
-            role_w=dict(description="role"),
+                role_w=dict(description="role"),
             strong=dict(description="strong number"),
             subjref=dict(description="number"),
             tense=dict(description="Verbal tense"),
-            type_w=dict(description="Morphological type"),
+                type_w=dict(description="Morphological type"),
             unicode=dict(description="lemma in unicode characters"),
             verse=dict(description="verse"),
             voice=dict(description="Verbal voice"),
-            word_in_verse=dict(description="number of word"),
-            empty=dict(description="whether a slot has been inserted in an empty element"),
-        )
+            word_in_verse=dict(description="number of word")
+            )
         self.intFeatures = intFeatures
         self.featureMeta = featureMeta
 
@@ -420,7 +413,7 @@ class XML:
 
         cv = self.getConverter()
 
-        return cv.walk(
+        return cv.walk( #setting features for the convertion walker
             self.getDirector(),
             slotType,
             otext=otext,
@@ -428,7 +421,7 @@ class XML:
             intFeatures=intFeatures,
             featureMeta=featureMeta,
             generateTf=True,
-            warn=False,
+            warn=False #it indicates that even with an warning the code will continue running
         )
 
     # DIRECTOR
@@ -474,7 +467,8 @@ class XML:
         WHITE_TRIM_RE = re.compile(r"\s+", re.S)
 
         def walkNode(cv, cur, node):
-            """Internal function to deal with a single element.
+            """Internal function to deal with a single element
+            walking through the nodes.
 
             Will be called recursively.
 
@@ -488,8 +482,8 @@ class XML:
             node: object
                 An lxml element node.
             """
-            tag = etree.QName(node.tag).localname
-            cur["nest"].append(tag)
+            tag = etree.QName(node.tag).localname #definition of the nodes
+            cur["nest"].append(tag) #nest all tags in a dictionary
 
             beforeChildren(cv, cur, node, tag)
 
@@ -504,6 +498,7 @@ class XML:
             """Add a slot.
 
             Whenever we encounter a character, we add it as a new slot.
+            The slot (word) is saved and its feature is saved as a variable 'text'.
 
             Parameters
             ----------
@@ -517,7 +512,6 @@ class XML:
             """
 
             s = cv.slot()
-            # print(ch)
             cv.feature(s, text=ch)
 
         def beforeChildren(cv, cur, node, tag):
@@ -536,13 +530,13 @@ class XML:
                 The tag of the lxml node.
             """
             if tag not in PASS_THROUGH:
-                curNode = cv.node(tag)
+                curNode = cv.node(tag) #obtain information of the current node
                 cur["elems"].append(curNode)
                 atts = {etree.QName(k).localname: v for (k, v) in node.attrib.items()}
                 if len(atts):
                     cv.feature(curNode, **atts)
 
-            if tag == "word":
+            if tag == "word": #generating and saving the features 'chapter' and 'verse' as slots
                 thisChapterNum = atts["chapter"]
                 thisVerseNum = atts["verse"]
                 if thisChapterNum != cv.get("chapter", cur["chapter"]):
@@ -567,13 +561,7 @@ class XML:
                     cur["verse"] = curVerse
                     cv.feature(curVerse, verse=thisVerseNum)
 
-                addSlot(cv, cur, atts["unicode"])  # word
-
-            if False and node.text:
-                textMaterial = WHITE_TRIM_RE.sub(" ", node.text)
-                addSlot(cv, cur, textMaterial)  # word
-                # for ch in textMaterial:
-                #    addSlot(cv, cur, ch)
+                addSlot(cv, cur, atts["unicode"])   #generating the node of the word using the attribute 'unicode'
 
         def afterChildren(cv, cur, node, tag):
             """Node actions after dealing with the children, but before the end tag.
@@ -594,10 +582,8 @@ class XML:
                 curNode = cur["elems"].pop()
 
                 if not cv.linked(curNode):
-                    addSlot(cv, curNode, ZWSP)  # word
-                    # s = cv.slot()
-                    # cv.feature(s, ch=ZWSP, empty=1)
-
+                    addSlot(cv, curNode, ZWSP)
+                    
                 cv.terminate(curNode)
 
         def afterTag(cv, cur, node, tag):
@@ -619,11 +605,6 @@ class XML:
             tag: string
                 The tag of the lxml node.
             """
-            if False and node.tail:
-                tailMaterial = WHITE_TRIM_RE.sub(" ", node.tail)
-                addSlot(cv, cur, tailMaterial)
-                # for word in tailMaterial:
-                #    addSlot(cv, cur, word)
 
         def director(cv):
             """Director function.
@@ -650,6 +631,7 @@ class XML:
                 console(f"\r{i:>4} {xmlFile:<50}", newline=False)
 
                 with open(f"{sourceDir}/{xmlFile}", encoding="utf-8") as fh:
+                    #defining variables before reading the file
                     text = fh.read()
                     text = transformFunc(text)
                     tree = etree.parse(text, parser)
@@ -658,11 +640,11 @@ class XML:
                     cur["elems"] = []
                     cur["chapter"] = None
                     cur["verse"] = None
-                    walkNode(cv, cur, root)
+                    walkNode(cv, cur, root) #walking though the nodes
 
-                # addSlot(cv, cur, None) #remove 'None' that appears in the last line
-                cv.terminate(cur["verse"])
-                cv.terminate(cur["chapter"])
+                #addSlot(cv, cur, None) #remove 'None' that appears in the last line
+                cv.terminate(cur["verse"]) #terminating the node 'verse'
+                cv.terminate(cur["chapter"]) #terminanting the node 'chapter'
 
             console("")
 
@@ -670,7 +652,7 @@ class XML:
                 if not cv.occurs(fName):
                     cv.meta(fName)
             for fName in cv.features():
-                if fName not in featureMeta:
+                if fName not in featureMeta: #dealing with feature metadata not indicated before
                     cv.meta(
                         fName,
                         description=f"this is XML attribute {fName}",
