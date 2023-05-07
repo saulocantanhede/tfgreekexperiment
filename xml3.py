@@ -292,6 +292,17 @@ class XML:
 
             console(f"{infoLines} info line(s) written to {reportFile}")
 
+        
+        i = 0
+        for xmlFile in self.getXML():
+            console(xmlFile)
+            i += 1
+            console(f"\r{i:>4} {xmlFile:<50}", newline=False)
+            xmlPath = f"{sourceDir}/{xmlFile}"
+            tree = etree.parse(xmlPath, parser)
+            root = tree.getroot()
+            analyse(root, analysis)
+        
         console("")
         writeReport()
 
