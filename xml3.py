@@ -8,6 +8,7 @@ from lxml import etree #lxml library is used to work with XML files
 
 #importing Text-Fabric libraries
 #these libraries are in the folder: ~/anaconda3/Lib/site-packages/tf
+#and this file is in the folder: ~/anaconda3/Lib/site-packages/tf/convert
 from ..fabric import Fabric
 from ..core.helpers import console
 from ..convert.walker import CV
@@ -29,32 +30,21 @@ DOC_TRANS = """
 
 *   Text-Fabric non-slot nodes correspond to XML elements in the source.
 *   Text-Fabric node-features correspond to XML attributes.
-*   Text-Fabric slot nodes correspond to the words,
-    which are the attribute unicode in XML element content.
+*   Text-Fabric slot nodes correspond to the words, which are the attribute unicode in XML element content.
 
-## Sectioning
+## Source
 
-The material is divided into two levels of sections, mainly for the purposes
-of text display.
+It is assumed that the source is a directory consisting of XML files.
 
-It is assumed that the source is a directory consisting of subdirectories
-consisting of xml files, the XML files.
-
-1.  Subdirectories and files are sorted in the lexicographic ordering
-1.  The subdirectory `__ignore__` is ignored.
-1.  For each subdirectory, a section level 1 node will be created, with
-    feature `name` containing its name.
-1.  For each file in a subdirecotry, a section level 2 node will be created, with
-    feature `name` containing its name.
-
+The files were preprocessed using a script which
+indicates the sections used for locate each word (verse and chapter).
 
 ## Elements and attributes
 
-1.  All elements result in nodes whose type is
-    exactly equal to the tag name.
-1.  These nodes are linked to the slots that are produced when converting the
+1.  All elements result in nodes whose type is exactly equal to the tag name.
+2.  These nodes are linked to the slots that are produced when converting the
     content of the corresponding source elements.
-1.  Attributes translate into features of the same name; the feature assigns
+3.  Attributes translate into features of the same name; the feature assigns
     the attribute value (as string) to the node that corresponds to the element
     of the attribute.
 
@@ -67,12 +57,8 @@ quite 1-1.
 
 1.  Whitespace is reduced to a single space.
 2.  Empty elements will receive one extra slot; this will anchor the element to
-    a textual position; the empty slot gets the ZERO-WIDTH-SPACE (Unicode 200B)
-    as character value.
-1.  Slots get the following features:
-    *   `w`: the character of the slot
-    *   `empty`: 1 if the slot has been inserted as an empty slot, no value otherwise.
-
+    a textual position.
+3.  Slots get the `w` feature as the word of the slot.
 
 ## Text-formats
 
@@ -92,11 +78,11 @@ and a simple list of features. In order to make that happen, we simplify matters
 a bit.
 
 1.  Processing instructions (`<!proc a="b">`) are ignored.
-1.  Comments (`<!-- this is a comment -->`) are ignored.
-1.  Declarations (`<?xml ...>` `<?xml-model ...>` `<?xml-stylesheet ...>`) are
+2.  Comments (`<!-- this is a comment -->`) are ignored.
+3.  Declarations (`<?xml ...>` `<?xml-model ...>` `<?xml-stylesheet ...>`) are
     read by the parser, but do not leave traces in the TF output.
-1.  The atrributes of the root-element are ignored.
-1.  Namespaces are read by the parser,
+4.  The atrributes of the root-element are ignored.
+5.  Namespaces are read by the parser,
     but only the unqualified names are distinguishable in the output as feature names.
     So if the input has elements `ns1:abb` and `ns2:abb`, we'll see just the node
     type `abb` in the output.
@@ -105,23 +91,9 @@ a bit.
 
 (only in as far they are not in 1-1 correspondence with XML elements and attributes)
 
-### node type `folder`
-
-*The type of subfolders of XML documents.*
-
-**Section level 1.**
-
-**Features**
-
-feature | description
---- | ---
-`folder` | name of the subfolder
-
 ### node type `file`
 
 *The type of individual XML documents.*
-
-**Section level 2.**
 
 **Features**
 
@@ -129,24 +101,20 @@ feature | description
 --- | ---
 `file` | name of the file, without the `.xml` extension. Other extensions are included.
 
-### node type `char`
+### node type `w`
 
-*Unicode characters.*
+*Words of the text.*
 
 **Slot type.**
 
-The characters of the text of the elements.
+The words of the text of the elements.
 Ignorable whitespace has been discarded, and is not present in the TF dataset.
 Meaningful whitespace has been condensed to single spaces.
-
-Some empty slots have been inserted to mark the place of empty elements.
 
 **Features**
 
 feature | description
 --- | ---
-`ch` | the unicode character in that slot. There are also slots
-`empty` | whether a slot has been inserted in an empty element
 """
 
 class XML:
@@ -421,7 +389,7 @@ class XML:
             intFeatures=intFeatures,
             featureMeta=featureMeta,
             generateTf=True,
-            warn=False #it indicates that even with an warning the code will continue running
+            warn=False #it indicates that even with a warning the code will continue running
         )
 
     # DIRECTOR
@@ -441,14 +409,12 @@ class XML:
         function
             The local director function that has been constructed.
         """
-        PASS_THROUGH = set(
+        PASS_THROUGH = set( #set of elements which will be skipped by the walker
             """
             """.strip().split()
         )
 
         # CHECKING
-
-        ZWSP = "\u200b"  # zero-width space
 
         sourceDir = self.sourceDir
         featureMeta = self.featureMeta
@@ -488,7 +454,7 @@ class XML:
             beforeChildren(cv, cur, node, tag)
 
             for child in node.iterchildren(tag=etree.Element):
-                walkNode(cv, cur, child)
+                walkNode(cv, cur, child) #it will walk recursevely to the children elements of the nodes
 
             afterChildren(cv, cur, node, tag)
             cur["nest"].pop()
@@ -511,8 +477,8 @@ class XML:
                 A single character, the next slot in the result data.
             """
 
-            s = cv.slot()
-            cv.feature(s, text=ch)
+            s = cv.slot() #generating the slot
+            cv.feature(s, text=ch) #it adds the feature 'text' to the slot
 
         def beforeChildren(cv, cur, node, tag):
             """Actions before dealing with the element's children.
@@ -530,9 +496,9 @@ class XML:
                 The tag of the lxml node.
             """
             if tag not in PASS_THROUGH:
-                curNode = cv.node(tag) #obtain information of the current node
+                curNode = cv.node(tag) #obtaining information of the current node
                 cur["elems"].append(curNode)
-                atts = {etree.QName(k).localname: v for (k, v) in node.attrib.items()}
+                atts = {etree.QName(k).localname: v for (k, v) in node.attrib.items()} #obtain the attributes of the current node
                 if len(atts):
                     cv.feature(curNode, **atts)
 
@@ -580,10 +546,11 @@ class XML:
             """
             if tag not in PASS_THROUGH:
                 curNode = cur["elems"].pop()
+                atts = {etree.QName(k).localname: v for (k, v) in node.attrib.items()}
 
-                if not cv.linked(curNode):
-                    addSlot(cv, curNode, ZWSP)
-                    
+                if False and not cv.linked(curNode):
+                    addSlot(cv, curNode, atts["after"])
+
                 cv.terminate(curNode)
 
         def afterTag(cv, cur, node, tag):
@@ -648,11 +615,12 @@ class XML:
 
             console("")
 
+            #dealing with feature metadata not indicated before
             for fName in featureMeta:
                 if not cv.occurs(fName):
                     cv.meta(fName)
             for fName in cv.features():
-                if fName not in featureMeta: #dealing with feature metadata not indicated before
+                if fName not in featureMeta:
                     cv.meta(
                         fName,
                         description=f"this is XML attribute {fName}",
